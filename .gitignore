@@ -1,0 +1,5 @@
+*.gb
+dmg_boot.bin
+*.exe
+*.pdb
+*.rdi
