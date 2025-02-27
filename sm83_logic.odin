@@ -4,6 +4,9 @@ import "base:intrinsics"
 import "core:math/bits"
 import "core:fmt"
 
+// TODO: Implement actual cycle-accuracy by
+// doing the individual steps of the instruction
+// on the appropriate cycles.
 cpu_step :: proc(state: ^Emulator_State) {
 	cpu := &state.cpu
 	

@@ -53,23 +53,21 @@ main :: proc() {
 		if rl.WindowShouldClose() {
 			break
 		}
-		for {
-			step(&state)
-			if state.ppu.v_counter == 144 {
-				break
-			}
+		step(&state)
+		if state.ppu.v_counter == 144 && state.ppu.h_counter == 0 {
+			rl.BeginDrawing()
+			rl.ClearBackground(rl.BLACK)
+			rl.UpdateTexture(state.screen_texture, raw_data(&state.ppu.screen_pixel_data))
+			rl.DrawTexturePro(state.screen_texture, {
+				x = 0, y = 0,
+				width = 160, height = 144,
+			}, {
+				x = 0, y = 0,
+				width = f32(rl.GetRenderWidth()), height = f32(rl.GetRenderHeight()),
+			}, { 0, 0 }, 0, rl.WHITE)
+			rl.DrawFPS(32, 32)
+			rl.EndDrawing()
 		}
-		rl.BeginDrawing()
-		rl.ClearBackground(rl.BLACK)
-		rl.UpdateTexture(state.screen_texture, raw_data(&state.ppu.screen_pixel_data))
-		rl.DrawTexturePro(state.screen_texture, {
-			x = 0, y = 0,
-			width = 160, height = 144,
-		}, {
-			x = 0, y = 0,
-			width = f32(rl.GetRenderWidth()), height = f32(rl.GetRenderHeight()),
-		}, { 0, 0 }, 0, rl.WHITE)
-		rl.EndDrawing()
 	}
 }
 
@@ -78,6 +76,7 @@ step :: proc(state: ^Emulator_State) {
 	ppu_step(state)
 
 	// TODO: CGB Double-speed mode
+	// the length of a dot stays the same in this mode.
 	if state.cycle_timer >= 4 {
 		cpu_step(state)
 		

@@ -70,6 +70,9 @@ memory_read :: proc(state: Emulator_State, address: u16) -> u8 {
 		// TODO: Mapper bank switching
 		return mem.rom[index]
 	case 0x8000..=0x9FFF: // VRAM
+		if state.ppu.vram_accessor == .Ppu {
+			return 0xFF
+		}
 		index := address - 0x8000
 		return state.ppu.vram[index]
 	case 0xC000..=0xDFFF: // WRAM (TODO: CGB switchable banks)
@@ -78,6 +81,12 @@ memory_read :: proc(state: Emulator_State, address: u16) -> u8 {
 	case 0xE000..=0xFDFF: // Echo RAM
 		index := address - 0xE000
 		return mem.ram[index]
+	case 0xFE00..=0xFE9F: // OAM
+		if state.ppu.oam_accessor == .Ppu {
+			return 0xFF
+		}
+		index := address - 0xFE00
+		return state.ppu.oam[index]
 	case 0xFF00: // JOYP
 		#partial switch mem.joyp_select {
 		case .Buttons:
@@ -97,12 +106,24 @@ memory_read :: proc(state: Emulator_State, address: u16) -> u8 {
 		return transmute(u8)state.timer.tac
 	case 0xFF0F: // IF
 		return transmute(u8)state.cpu.interrupt_flag
+	case 0xFF40: // LCDC
+		return transmute(u8)state.ppu.lcd_control
 	case 0xFF42: // SCY
 		return state.ppu.scroll_y
 	case 0xFF43: // SCX
 		return state.ppu.scroll_x
 	case 0xFF44: // LY
 		return state.ppu.v_counter
+	case 0xFF47: // BGP
+		return state.ppu.bg_win_palette
+	case 0xFF48: // OBP0
+		return state.ppu.object_palette_0
+	case 0xFF49: // OBP1
+		return state.ppu.object_palette_1
+	case 0xFF4A: // WY
+		return state.ppu.window_y
+	case 0xFF4B: // WX
+		return state.ppu.window_x
 	case 0xFF50: // BANK
 		return mem.bootrom_disable
 	case 0xFF80..=0xFFFE: // HRAM
@@ -119,6 +140,9 @@ memory_write :: proc(state: ^Emulator_State, address: u16, value: u8) {
 	mem := &state.mem
 	switch address {
 	case 0x8000..=0x9FFF: // VRAM
+		if state.ppu.vram_accessor == .Ppu {
+			break
+		}
 		index := address - 0x8000
 		state.ppu.vram[index] = value
 	case 0xC000..=0xDFFF: // WRAM (TODO: CGB switchable banks)
@@ -127,6 +151,12 @@ memory_write :: proc(state: ^Emulator_State, address: u16, value: u8) {
 	case 0xE000..=0xFDFF: // Echo RAM
 		index := address - 0xE000
 		mem.ram[index] = value
+	case 0xFE00..=0xFE9F: // OAM
+		if state.ppu.oam_accessor == .Ppu {
+			break
+		}
+		index := address - 0xFE00
+		state.ppu.oam[index] = value
 	case 0xFF00: // JOYP
 		mem.joyp_select = Joyp_Select((value & 0b00110000) >> 4)
 	case 0xFF04: // DIV
@@ -140,10 +170,22 @@ memory_write :: proc(state: ^Emulator_State, address: u16, value: u8) {
 		state.timer.tac = transmute(Timer_Tac)value
 	case 0xFF0F: // IF
 		state.cpu.interrupt_flag = transmute(Cpu_Interrupt_Bits)value
+	case 0xFF40: // LCDC
+		state.ppu.lcd_control = transmute(Lcd_Control)value
 	case 0xFF42: // SCY
 		state.ppu.scroll_y = value
 	case 0xFF43: // SCX
 		state.ppu.scroll_x = value
+	case 0xFF47: // BGP
+		state.ppu.bg_win_palette = value
+	case 0xFF48: // OBP0
+		state.ppu.object_palette_0 = value
+	case 0xFF49: // OBP1
+		state.ppu.object_palette_1 = value
+	case 0xFF4A: // WY
+		state.ppu.window_y = value
+	case 0xFF4B: // WX
+		state.ppu.window_x = value
 	case 0xFF50: // BANK
 		mem.bootrom_disable = value
 	case 0xFF80..=0xFFFE: // HRAM
